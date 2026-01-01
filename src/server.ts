@@ -190,29 +190,35 @@ client.on(Events.MessageCreate, async (message) => {
   }
 });
 
-cron.schedule("0 20 * * *", async () => {
-  console.log("Running daily at 8 PM");
+cron.schedule(
+  "0 20 * * *",
+  async () => {
+    console.log("Running daily at 8:30 PM");
 
-  const generalChannel = await client.channels.fetch("1456214094737707129");
-  if (generalChannel?.isSendable()) {
-    try {
-      if (tomorrow === "SATURDAY") {
+    const generalChannel = await client.channels.fetch("1456214094737707129");
+    if (generalChannel?.isSendable()) {
+      try {
+        if (tomorrow === "SATURDAY") {
+          await generalChannel.send(
+            `📅 **Schedule for ${tomorrow}:**\nNo classes scheduled! Enjoy your day off! 🎉`
+          );
+          return;
+        }
+        const scheduleMessage = formatSchedule(tomorrow as Days);
         await generalChannel.send(
-          `📅 **Schedule for ${tomorrow}:**\nNo classes scheduled! Enjoy your day off! 🎉`
+          `📅 **Schedule for ${tomorrow}:**\n${scheduleMessage}`
         );
-        return;
+      } catch (error) {
+        await generalChannel.send(
+          "Sorry, I couldn't fetch the schedule at the moment."
+        );
+        console.error("Error fetching schedule:", error);
       }
-      const scheduleMessage = formatSchedule(tomorrow as Days);
-      await generalChannel.send(
-        `📅 **Schedule for ${tomorrow}:**\n${scheduleMessage}`
-      );
-    } catch (error) {
-      await generalChannel.send(
-        "Sorry, I couldn't fetch the schedule at the moment."
-      );
-      console.error("Error fetching schedule:", error);
     }
+  },
+  {
+    timezone: "Asia/Kathmandu",
   }
-});
+);
 
 client.login(process.env.DISCORD_TOKEN);

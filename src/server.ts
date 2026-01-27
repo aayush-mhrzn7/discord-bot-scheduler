@@ -1,21 +1,16 @@
 import { Client, GatewayIntentBits, Events } from "discord.js";
 import cron from "node-cron";
 import dotenv from "dotenv";
-import {
-  cronFunctionToGetRoutineOfTommorrow,
-  formatSchedule,
-  getRoutine,
-} from "./commands.js";
-import type { Days } from "./utils/types.js";
+import { cronFunctionToGetRoutineOfTommorrow, getRoutine } from "./commands.js";
 import schedule from "./constants.js";
+import type { Days } from "./utils/types.js";
+
 dotenv.config();
 
-const dayIndex = new Date().getDay();
-const days: Days[] = Object.keys(schedule) as Days[];
-const tomorrow = days[(dayIndex + 1) % days.length];
-const today = days[dayIndex % days.length];
+// We keep the keys globally so we don't re-create the array every time
+const days = Object.keys(schedule);
 
-if (process.env.DISCORD_TOKEN === undefined) {
+if (!process.env.DISCORD_TOKEN) {
   throw new Error("DISCORD_TOKEN is not defined in environment variables");
 }
 
@@ -33,53 +28,50 @@ client.on(Events.ClientReady, () => {
 
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
-  if (message.content == "!help") {
-    try {
-      await message.channel.send(
-        "Hey Looks like you need some help with the commands here you go. \n 1. !today (Get the Routine of Today) \n 2. !tommorrow (Get Routine of Tommorrow)"
-      );
-    } catch (error) {
-      await message.channel.send(
-        "Sorry, I couldn't fetch the schedule at the moment."
-      );
-    }
+
+  const now = new Date();
+  const dayIndex = now.getDay();
+  const today = days[dayIndex % days.length];
+  const tomorrow = days[(dayIndex + 1) % days.length];
+
+  const content = message.content.toLowerCase();
+
+  if (content === "!help") {
+    await message.channel.send(
+      "Hey! Here are the commands you can use:\n1. `!today` - Get today's routine\n2. `!tomorrow` - Get tomorrow's routine",
+    );
   }
-  if (message.content == "ping") {
-    try {
-      await message.channel.send("pong");
-    } catch (error) {
-      await message.channel.send(
-        "Sorry, I couldn't fetch the schedule at the moment."
-      );
-    }
+
+  if (content === "ping") {
+    await message.channel.send("pong 🏓");
   }
-  if (message.content === "!today") {
+
+  if (content === "!today") {
     try {
       if (today === "SATURDAY") {
-        await message.channel.send(
-          `📅 **Schedule for ${today}:**\nNo classes scheduled! Enjoy your day off! 🎉`
+        return await message.channel.send(
+          `📅 **Schedule for ${today}:**\nNo classes! Enjoy your day off! 🎉`,
         );
-        return;
       }
-      getRoutine(today as Days, message);
+      await getRoutine(today as Days, message);
     } catch (error) {
       await message.channel.send(
-        "Sorry, I couldn't fetch the schedule at the moment."
+        "Sorry, I couldn't fetch the schedule right now.",
       );
     }
   }
-  if (message.content === "!tommorrow") {
+
+  if (content === "!tomorrow" || content === "!tommorrow") {
     try {
       if (tomorrow === "SATURDAY") {
-        await message.channel.send(
-          `📅 **Schedule for ${tomorrow}:**\nNo classes scheduled! Enjoy your day off! 🎉`
+        return await message.channel.send(
+          `📅 **Schedule for ${tomorrow}:**\nNo classes! Enjoy your day off! 🎉`,
         );
-        return;
       }
-      getRoutine(tomorrow as Days, message);
+      await getRoutine(tomorrow as Days, message);
     } catch (error) {
       await message.channel.send(
-        "Sorry, I couldn't fetch the schedule at the moment."
+        "Sorry, I couldn't fetch the schedule right now.",
       );
     }
   }
@@ -88,11 +80,15 @@ client.on(Events.MessageCreate, async (message) => {
 cron.schedule(
   "0 20 * * *",
   async () => {
-    cronFunctionToGetRoutineOfTommorrow(client, tomorrow as Days);
+    const now = new Date();
+    const cronTomorrow = days[(now.getDay() + 1) % days.length];
+
+    console.log(`Running cron for: ${cronTomorrow}`);
+    cronFunctionToGetRoutineOfTommorrow(client, cronTomorrow as Days);
   },
   {
     timezone: "Asia/Kathmandu",
-  }
+  },
 );
 
 client.login(process.env.DISCORD_TOKEN);

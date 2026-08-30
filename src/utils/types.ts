@@ -10,8 +10,8 @@ type ValidCommands = "!today" | "!routine" | "!help";
 interface ScheduleEntry {
   time: string;
   subject: string;
-  teacher: string;
-  teacherCode: string;
+  teacher?: string;
+  teacherCode?: string;
   details?: string;
 }
 

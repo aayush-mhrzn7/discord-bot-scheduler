@@ -48,11 +48,6 @@ client.on(Events.MessageCreate, async (message) => {
 
   if (content === "!today") {
     try {
-      if (today === "SATURDAY") {
-        return await message.channel.send(
-          `📅 **Schedule for ${today}:**\nNo classes! Enjoy your day off! 🎉`,
-        );
-      }
       await getRoutine(today as Days, message);
     } catch (error) {
       await message.channel.send(
@@ -63,11 +58,6 @@ client.on(Events.MessageCreate, async (message) => {
 
   if (content === "!tomorrow" || content === "!tommorrow") {
     try {
-      if (tomorrow === "SATURDAY") {
-        return await message.channel.send(
-          `📅 **Schedule for ${tomorrow}:**\nNo classes! Enjoy your day off! 🎉`,
-        );
-      }
       await getRoutine(tomorrow as Days, message);
     } catch (error) {
       await message.channel.send(

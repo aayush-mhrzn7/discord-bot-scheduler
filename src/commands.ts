@@ -8,10 +8,16 @@ const getRoutine = async (day: keyof Schedule, message: any) => {
 };
 function formatSchedule(day: Days) {
   const entries = schedule[day];
+  if (!entries.length) {
+    return "No classes scheduled! Enjoy your day off! 🎉";
+  }
   return entries
     .map((entry) => {
       const details = entry.details ? ` [${entry.details}]` : "";
-      return `${entry.time} - **${entry.subject}** by ${entry.teacher} (${entry.teacherCode})${details}`;
+      const byline = entry.teacher
+        ? ` by ${entry.teacher}${entry.teacherCode ? ` (${entry.teacherCode})` : ""}`
+        : "";
+      return `${entry.time} - **${entry.subject}**${byline}${details}`;
     })
     .join("\n");
 }
@@ -22,12 +28,6 @@ const cronFunctionToGetRoutineOfTommorrow = async (
   const generalChannel = await client.channels.fetch("1456214094737707129");
   if (generalChannel?.isSendable()) {
     try {
-      if (day === "SATURDAY") {
-        await generalChannel.send(
-          `📅 **Schedule for ${day}:**\nNo classes scheduled! Enjoy your day off! 🎉`
-        );
-        return;
-      }
       const scheduleMessage = formatSchedule(day as Days);
       await generalChannel.send(
         `📅 **Schedule for ${day}:**\n${scheduleMessage}`

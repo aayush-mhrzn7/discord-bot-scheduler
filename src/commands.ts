@@ -1,4 +1,4 @@
-import type { Client, ClientEvents } from "discord.js";
+import type { Client } from "discord.js";
 import schedule from "./constants.js";
 import type { Days, Schedule } from "./utils/types.js";
 
@@ -6,6 +6,7 @@ const getRoutine = async (day: keyof Schedule, message: any) => {
   const scheduleMessage = formatSchedule(day);
   await message.channel.send(`📅 **Schedule for ${day}:**\n${scheduleMessage}`);
 };
+
 function formatSchedule(day: Days) {
   const entries = schedule[day];
   if (!entries.length) {
@@ -21,23 +22,42 @@ function formatSchedule(day: Days) {
     })
     .join("\n");
 }
+
+async function postViaWebhook(content: string) {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) {
+    throw new Error("DISCORD_WEBHOOK_URL is not defined in environment variables");
+  }
+
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Webhook failed (${response.status}): ${body}`);
+  }
+}
+
 const cronFunctionToGetRoutineOfTommorrow = async (
-  client: Client,
-  day: keyof Schedule
+  _client: Client,
+  day: keyof Schedule,
 ) => {
-  const generalChannel = await client.channels.fetch("1456214094737707129");
-  if (generalChannel?.isSendable()) {
+  const content = `📅 **Schedule for ${day}:**\n${formatSchedule(day as Days)}`;
+  try {
+    await postViaWebhook(content);
+  } catch (error) {
+    console.error("Error posting schedule via webhook:", error);
     try {
-      const scheduleMessage = formatSchedule(day as Days);
-      await generalChannel.send(
-        `📅 **Schedule for ${day}:**\n${scheduleMessage}`
+      await postViaWebhook(
+        "Sorry, I couldn't fetch the schedule at the moment.",
       );
-    } catch (error) {
-      await generalChannel.send(
-        "Sorry, I couldn't fetch the schedule at the moment."
-      );
-      console.error("Error fetching schedule:", error);
+    } catch (fallbackError) {
+      console.error("Error posting fallback via webhook:", fallbackError);
     }
   }
 };
+
 export { formatSchedule, getRoutine, cronFunctionToGetRoutineOfTommorrow };
